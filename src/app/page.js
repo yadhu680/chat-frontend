@@ -184,7 +184,7 @@ export default function Home() {
                 setDesiredName('');
                 sessionStorage.removeItem('chat-username');
               }}
-              className="bg-gray-200 px-4 rounded font-grey"
+              className="bg-gray-200 px-4 rounded text-black-900"
             >
               Clear
             </button>
