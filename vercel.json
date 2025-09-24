@@ -1,0 +1,8 @@
+{
+  "builds": [
+    { "src": "chat-frontend/next.config.mjs", "use": "@vercel/next" }
+  ],
+  "routes": [
+    { "src": "/(.*)", "dest": "chat-frontend/$1" }
+  ]
+}
