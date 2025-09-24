@@ -209,7 +209,7 @@ export default function Home() {
 
       <aside className="w-80 bg-white border-r p-4 hidden sm:block">
         <div className="flex items-center justify-between mb-4 border-b pb-2">
-          <div className="font-semibold">Friends Online</div>
+          <div className="font-semibold text-black-600">Friends Online</div>
         </div>
 
         <div className="space-y-2">
@@ -278,8 +278,9 @@ export default function Home() {
 
         <div className="bg-white p-4 border-b flex items-center justify-between">
           <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-            <span className="font-semibold text-black-600">
-              Chat as <span className="text-green-600">{myName || 'You'}</span>
+            <span className="font-semibold">
+              <span className="text-black-600">Chat as </span>
+              <span className="text-green-600">{myName || 'You'}</span>
             </span>
             {privateTarget && (
               <span className="inline-flex items-center gap-2 bg-green-500 text-white px-3 py-1 rounded-full text-sm">
