@@ -184,7 +184,7 @@ export default function Home() {
                 setDesiredName('');
                 sessionStorage.removeItem('chat-username');
               }}
-              className="bg-gray-200 px-4 rounded text-black-200"
+              className="bg-gray-200 px-4 rounded font-grey"
             >
               Clear
             </button>
@@ -242,7 +242,9 @@ export default function Home() {
 
       <div className="flex-1 flex flex-col">
         <div className="sm:hidden bg-white border-b p-2">
-          <div className="font-semibold mb-2 border-b pb-2">Friends Online</div>
+          <div className="font-semibold mb-2 border-b pb-2 text-black-600">
+            Friends Online
+          </div>
           <div className="flex flex-wrap gap-2">
             {sortedUsers.map((u) => {
               const isMe = u.username === myName;
@@ -262,7 +264,7 @@ export default function Home() {
                     }`}
                   />
                   <span
-                    className={`whitespace-nowrap ${
+                    className={`whitespace-nowrap text-black ${
                       isMe ? 'font-semibold' : ''
                     }`}
                   >
@@ -276,7 +278,7 @@ export default function Home() {
 
         <div className="bg-white p-4 border-b flex items-center justify-between">
           <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-            <span className="font-semibold text-black-500">
+            <span className="font-semibold text-black-600">
               Chat as <span className="text-green-600">{myName || 'You'}</span>
             </span>
             {privateTarget && (
