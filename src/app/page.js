@@ -38,6 +38,15 @@ export default function Home() {
     const ws = new WebSocket(buildWsUrl());
     wsRef.current = ws;
 
+    const usernamePattern = /^[a-zA-Z0-9._]{3,20}$/;
+
+    if (!usernamePattern.test(desiredName)) {
+      alert(
+        'Name must be 3–20 characters and only allowed letters, numbers, underscore, or dot.'
+      );
+      return;
+    }
+
     ws.onopen = () => {
       ws.send(
         JSON.stringify({ type: 'register', username: desiredName.trim() })
