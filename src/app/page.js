@@ -179,15 +179,6 @@ export default function Home() {
             >
               Join
             </button>
-            <button
-              onClick={() => {
-                setDesiredName('');
-                sessionStorage.removeItem('chat-username');
-              }}
-              className="bg-gray-200 px-4 rounded text-black-900"
-            >
-              Clear
-            </button>
           </div>
           <p className="text-sm text-gray-500 mt-3">
             App may adjust your name slightly to avoid duplicates.
@@ -209,7 +200,7 @@ export default function Home() {
 
       <aside className="w-80 bg-white border-r p-4 hidden sm:block">
         <div className="flex items-center justify-between mb-4 border-b pb-2">
-          <div className="font-semibold text-black-600">Friends Online</div>
+          <strong>Friends Online</strong>
         </div>
 
         <div className="space-y-2">
@@ -242,10 +233,8 @@ export default function Home() {
 
       <div className="flex-1 flex flex-col">
         <div className="sm:hidden bg-white border-b p-2">
-          <div className="font-bold mb-2 border-b pb-2 text-black-900">
-            Friends Online
-          </div>
-          <div className="flex flex-wrap gap-2">
+          <strong>Friends Online</strong>
+          <div className="flex flex-wrap gap-2 mt-2">
             {sortedUsers.map((u) => {
               const isMe = u.username === myName;
               return (
@@ -279,7 +268,7 @@ export default function Home() {
         <div className="bg-white p-4 border-b flex items-center justify-between">
           <div className="flex flex-col sm:flex-row sm:items-center gap-2">
             <span className="font-semibold">
-              <span className="text-black-900">Chat as </span>
+              <strong>Chat as </strong>
               <span className="text-green-600">{myName || 'You'}</span>
             </span>
             {privateTarget && (
