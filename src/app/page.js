@@ -242,7 +242,7 @@ export default function Home() {
 
       <div className="flex-1 flex flex-col">
         <div className="sm:hidden bg-white border-b p-2">
-          <div className="font-semibold mb-2 border-b pb-2 text-black-600">
+          <div className="font-bold mb-2 border-b pb-2 text-black-900">
             Friends Online
           </div>
           <div className="flex flex-wrap gap-2">
@@ -279,7 +279,7 @@ export default function Home() {
         <div className="bg-white p-4 border-b flex items-center justify-between">
           <div className="flex flex-col sm:flex-row sm:items-center gap-2">
             <span className="font-semibold">
-              <span className="text-black-600">Chat as </span>
+              <span className="text-black-900">Chat as </span>
               <span className="text-green-600">{myName || 'You'}</span>
             </span>
             {privateTarget && (
