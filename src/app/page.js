@@ -163,7 +163,7 @@ export default function Home() {
           </h2>
 
           <input
-            className="w-full border border-gray-300 rounded px-3 py-2 mb-3 text-black placeholder-gray-400 focus:ring-2 focus:ring-green-400 focus:border-green-400"
+            className="w-full border border-gray-300 rounded px-3 py-2 mb-3 text-black placeholder-gray-400"
             placeholder="Enter you name"
             value={desiredName}
             onChange={(e) => setDesiredName(e.target.value)}
@@ -353,7 +353,7 @@ export default function Home() {
               onKeyDown={(e) => {
                 if (e.key === 'Enter') handleSend();
               }}
-              className="flex-1 border border-gray-300 rounded px-3 py-2 text-black placeholder-gray-400 focus:ring-2 focus:ring-green-400 focus:border-green-400"
+              className="flex-1 border rounded px-3 py-2 text-black placeholder-gray-400"
               placeholder={
                 privateTarget
                   ? `Message @${privateTarget} (private)`
