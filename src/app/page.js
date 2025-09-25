@@ -45,6 +45,8 @@ export default function Home() {
     if (!desiredName.trim()) {
       showErrorMsg('Enter your name first!');
       return;
+    } else {
+      setError('');
     }
     const ws = new WebSocket(buildWsUrl());
     wsRef.current = ws;
@@ -56,6 +58,8 @@ export default function Home() {
         'Invalid name! Only letters, numbers, underscore, or dot (3–20 chars) allowed.'
       );
       return;
+    } else {
+      setError('');
     }
 
     setIsJoining(true); // lock the button
