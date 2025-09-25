@@ -12,15 +12,21 @@ export default function Home() {
   const [users, setUsers] = useState([]); // {id, username, online}
   const [messages, setMessages] = useState([]); // message objects from server
   const [input, setInput] = useState('');
+  const [error, setError] = useState('');
   const [privateTarget, setPrivateTarget] = useState('');
   const wsRef = useRef(null);
   const messagesEndRef = useRef(null);
+  const [isJoining, setIsJoining] = useState(false);
 
   useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  function showErrorMsg(msg) {
+    setError(msg);
+  }
 
   // helper: build dynamic ws url
   function buildWsUrl() {
@@ -34,18 +40,25 @@ export default function Home() {
   }
 
   const register = () => {
-    if (!desiredName.trim()) return;
+    if (isJoining) return; // prevent double clicks
+
+    if (!desiredName.trim()) {
+      showErrorMsg('Enter your name first!');
+      return;
+    }
     const ws = new WebSocket(buildWsUrl());
     wsRef.current = ws;
 
     const usernamePattern = /^[a-zA-Z0-9._]{3,20}$/;
 
     if (!usernamePattern.test(desiredName)) {
-      alert(
-        'Name must be 3–20 characters and only allowed letters, numbers, underscore, or dot.'
+      showErrorMsg(
+        'Invalid name! Only letters, numbers, underscore, or dot (3–20 chars) allowed.'
       );
       return;
     }
+
+    setIsJoining(true); // lock the button
 
     ws.onopen = () => {
       ws.send(
@@ -55,7 +68,11 @@ export default function Home() {
 
     ws.onmessage = (evt) => {
       const data = JSON.parse(evt.data);
-      if (data.type === 'registered') {
+
+      if (data.type === 'error') {
+        showErrorMsg(data.message || 'Error from server');
+        return;
+      } else if (data.type === 'registered') {
         setMyId(data.id);
         setMyName(data.username);
         setRegistered(true);
@@ -96,6 +113,8 @@ export default function Home() {
     };
 
     ws.onclose = () => {};
+    // allow re-enable if needed (like error)
+    setTimeout(() => setIsJoining(false), 2000);
   };
 
   useEffect(() => {
@@ -118,7 +137,7 @@ export default function Home() {
     // Remove previous @username if any
     let newInput = input.replace(/@\w+\s*/, '');
     setPrivateTarget(user.username);
-    setInput(`@${user.username} ${newInput}`);
+    setInput(`${newInput}`);
   };
 
   const handleSend = () => {
@@ -128,7 +147,13 @@ export default function Home() {
       wsRef.current.readyState !== WebSocket.OPEN
     )
       return;
-    wsRef.current.send(JSON.stringify({ type: 'message', text: input.trim() }));
+    wsRef.current.send(
+      JSON.stringify({
+        type: 'message',
+        text: input.trim(),
+        to: privateTarget || null,
+      })
+    );
     setInput('');
     setPrivateTarget('');
   };
@@ -168,12 +193,12 @@ export default function Home() {
       <main className="h-screen flex items-center justify-center bg-gray-50 p-4">
         <div className="w-full max-w-md bg-white rounded-xl shadow p-6">
           <h2 className="text-2xl font-semibold mb-4 text-gray-900">
-            Join Chat
+            Hello Friend! Join Chat
           </h2>
 
           <input
             className="w-full border border-gray-300 rounded px-3 py-2 mb-3 text-black placeholder-gray-400"
-            placeholder="Enter you name"
+            placeholder="Enter your name.."
             value={desiredName}
             onChange={(e) => setDesiredName(e.target.value)}
             onKeyDown={(e) => {
@@ -184,13 +209,21 @@ export default function Home() {
           <div className="flex gap-2">
             <button
               onClick={register}
-              className="flex-1 bg-green-600 text-white py-2 rounded hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-400"
+              disabled={isJoining}
+              className={`flex-1 bg-green-600 text-white py-2 
+              rounded hover:bg-green-700 focus:outline-none 
+              focus:ring-2 focus:ring-green-400 ${
+                isJoining
+                  ? 'bg-gray-400 cursor-not-allowed'
+                  : 'bg-blue-500 hover:bg-blue-600 text-white cursor-pointer'
+              }`}
             >
-              Join
+              {isJoining ? 'Joining...' : 'Click here to join'}
             </button>
           </div>
+          {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
           <p className="text-sm text-gray-500 mt-3">
-            App may adjust your name slightly to avoid duplicates.
+            Already joined? enter the same name to rejoin.
           </p>
         </div>
       </main>
@@ -209,13 +242,19 @@ export default function Home() {
 
       <aside className="w-80 bg-white border-r p-4 hidden sm:block">
         <div className="flex items-center justify-between mb-4 border-b pb-2">
-          <strong>Friends Online</strong>
+          <span className="font-semibold">Friends Online</span>
+          <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
+            {users.filter((u) => u.online).length}
+          </span>
         </div>
 
         <div className="space-y-2">
           {sortedUsers.length === 0 && (
             <div className="text-gray-500">No users</div>
           )}
+          <span className="text-md flex text-gray-500 mb-2">
+            Click the user to chat privately
+          </span>
           {sortedUsers.map((u) => {
             const isMe = u.username === myName;
             return (
@@ -231,7 +270,7 @@ export default function Home() {
                     u.online ? 'bg-green-500' : 'bg-gray-400'
                   }`}
                 />
-                <div className={isMe ? 'font-semibold' : ''}>
+                <div className={isMe ? 'font-semibold cursor-auto' : ''}>
                   {isMe ? 'You' : u.username}
                 </div>
               </div>
@@ -242,7 +281,10 @@ export default function Home() {
 
       <div className="flex-1 flex flex-col">
         <div className="sm:hidden bg-white border-b p-2">
-          <strong>Friends Online</strong>
+          <span className="font-semibold">Friends Online </span>
+          <span className="text-md text-gray-500">
+            (Click the user to chat privately)
+          </span>
           <div className="flex flex-wrap gap-2 mt-2">
             {sortedUsers.map((u) => {
               const isMe = u.username === myName;
@@ -281,14 +323,22 @@ export default function Home() {
               <span className="text-green-600">{myName || 'You'}</span>
             </span>
             {privateTarget && (
-              <span className="inline-flex items-center gap-2 bg-green-500 text-white px-3 py-1 rounded-full text-sm">
-                Private to {privateTarget}
-              </span>
+              <div className="mb-1 flex items-center justify-between bg-green-500 text-white px-3 py-1 rounded-full text-sm">
+                <span className="inline-flex items-center gap-1">
+                  Send private message to <strong>{privateTarget}</strong>
+                </span>
+                <button
+                  onClick={() => handleUserClick({ username: privateTarget })}
+                  className="ml-2 text-xs text-black-600 hover:underline"
+                >
+                  ✕
+                </button>
+              </div>
             )}
           </div>
           <button
             onClick={handleLogout}
-            className="text-red-500 text-sm font-semibold hover:underline"
+            className="text-red-500 text-sm font-semibold hover:underline cursor-pointer"
           >
             Logout
           </button>
