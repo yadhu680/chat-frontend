@@ -242,7 +242,7 @@ export default function Home() {
 
       <aside className="w-80 bg-white border-r p-4 hidden sm:block">
         <div className="flex items-center justify-between mb-4 border-b pb-2">
-          <span className="font-semibold">Friends Online</span>
+          <span className="font-semibold text-black">Friends Online</span>
           <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
             {users.filter((u) => u.online).length}
           </span>
@@ -281,7 +281,7 @@ export default function Home() {
 
       <div className="flex-1 flex flex-col">
         <div className="sm:hidden bg-white border-b p-2">
-          <span className="font-semibold">Friends Online </span>
+          <span className="font-semibold text-black">Friends Online </span>
           <span className="text-md text-gray-500">
             (Click the user to chat privately)
           </span>
@@ -319,7 +319,7 @@ export default function Home() {
         <div className="bg-white p-4 border-b flex items-center justify-between">
           <div className="flex flex-col sm:flex-row sm:items-center gap-2">
             <span className="font-semibold">
-              <strong>Chat as </strong>
+              <span className="font-semibold text-black">Chat as </span>
               <span className="text-green-600">{myName || 'You'}</span>
             </span>
             {privateTarget && (
@@ -396,7 +396,7 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="p-4 bg-white border-t">
+        <div className="sticky bottom-0 left-0 right-0 bg-white border-t p-4">
           <div className="flex gap-2">
             <input
               value={input}
