@@ -18,7 +18,10 @@ export default function Home() {
   const messagesEndRef = useRef(null);
   const [isJoining, setIsJoining] = useState(false);
 
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    setError('');
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -244,7 +247,7 @@ export default function Home() {
     <div className="flex h-screen bg-gray-100">
       {/* Sidebar */}
 
-      <aside className="w-80 bg-white border-r p-4 hidden sm:block">
+      <aside className="w-80 bg-white border-r p-4 hidden sm:block sticky top-0 h-screen overflow-y-auto">
         <div className="flex items-center justify-between mb-4 border-b pb-2">
           <span className="font-semibold text-black">Friends Online</span>
           <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
@@ -284,7 +287,7 @@ export default function Home() {
       </aside>
 
       <div className="flex-1 flex flex-col">
-        <div className="sm:hidden bg-white border-b p-2">
+        <div className="sm:hidden bg-white border-b p-2 sticky top-0 z-10">
           <span className="font-semibold text-black">Friends Online </span>
           <span className="text-md text-gray-500">
             (Click the user to chat privately)
