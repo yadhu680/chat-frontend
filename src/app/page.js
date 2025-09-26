@@ -1,6 +1,10 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import dynamic from 'next/dynamic';
+
+// Emoji picker
+const Picker = dynamic(() => import('emoji-picker-react'), { ssr: false });
 
 export default function Home() {
   const [mounted, setMounted] = useState(false);
@@ -15,9 +19,11 @@ export default function Home() {
   const [error, setError] = useState('');
   const [privateTarget, setPrivateTarget] = useState('');
   const [isJoining, setIsJoining] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+
   const wsRef = useRef(null);
+  const inputRef = useRef(null);
   const messagesEndRef = useRef(null);
-  const messageQueueRef = useRef([]); // holds unsent messages
 
   useEffect(() => {
     setError('');
@@ -42,17 +48,6 @@ export default function Home() {
 
     ws.onopen = () => {
       ws.send(JSON.stringify({ type: 'register', username }));
-      // flush queued messages
-      if (messageQueueRef.current.length > 0) {
-        messageQueueRef.current.forEach((msg) => {
-          ws.send(JSON.stringify(msg));
-          // mark as delivered
-          setMessages((prev) =>
-            prev.map((m) => (m.id === msg.id ? { ...m, pending: false } : m))
-          );
-        });
-        messageQueueRef.current = [];
-      }
     };
 
     ws.onmessage = (evt) => {
@@ -109,12 +104,10 @@ export default function Home() {
         const saved = sessionStorage.getItem('chatUser');
         if (saved) {
           const { username } = JSON.parse(saved);
-          initSocket(username); // retry with saved username
+          initSocket(username);
         }
       }, 3000);
     };
-
-    return ws;
   }
 
   const register = () => {
@@ -154,26 +147,22 @@ export default function Home() {
     if (!input.trim()) return;
 
     const msg = {
-      id: 'local-' + Date.now(),
       type: 'message',
       text: input.trim(),
       to: privateTarget || null,
       user: desiredName,
       timestamp: new Date().toISOString(),
-      pending: true, // mark as pending
     };
 
-    // Send message immediately if socket is open, else queue it
+    // Send message immediately
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify(msg));
-      setMessages((prev) => [...prev, msg]);
-    } else {
-      messageQueueRef.current.push(msg);
-      setMessages((prev) => [...prev, msg]); // still show it in chat
     }
 
+    //setMessages((prev) => [...prev, msg]);
     setInput('');
     setPrivateTarget('');
+    setShowEmojiPicker(false);
   };
 
   const handleLogout = () => {
@@ -205,6 +194,11 @@ export default function Home() {
     }
     return 'wss://whatsapp-clone-backend-lajh.onrender.com';
   }
+
+  const handleEmojiClick = (emojiObject) => {
+    setInput((prev) => prev + emojiObject.emoji);
+    inputRef.current?.focus();
+  };
 
   const formatTime = (iso) => {
     if (!iso) return '';
@@ -248,9 +242,7 @@ export default function Home() {
             <button
               onClick={register}
               disabled={isJoining}
-              className={`flex-1 bg-green-600 text-white py-2 
-              rounded hover:bg-green-700 focus:outline-none 
-              focus:ring-2 focus:ring-green-400 ${
+              className={`flex-1 bg-green-600 text-white py-2 rounded hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-400 ${
                 isJoining
                   ? 'bg-gray-400 cursor-not-allowed'
                   : 'bg-blue-500 hover:bg-blue-600 text-white cursor-pointer'
@@ -269,10 +261,9 @@ export default function Home() {
       </main>
     );
   } else {
-    const sortedUsers = [...users].sort((a, b) => {
-      if (a.online === b.online) return 0;
-      return a.online ? -1 : 1;
-    });
+    const sortedUsers = [...users].sort((a, b) =>
+      a.online === b.online ? 0 : a.online ? -1 : 1
+    );
 
     return (
       <div className="flex h-screen bg-gray-100">
@@ -315,8 +306,9 @@ export default function Home() {
             })}
           </div>
         </aside>
-
+        {/* Main chat area */}
         <div className="flex-1 flex flex-col">
+          {/* Mobile Friends Online */}
           <div className="sm:hidden bg-white border-b p-2 sticky top-0 z-10">
             <span className="font-semibold text-black">Friends Online </span>
             <span className="text-md text-gray-500">
@@ -352,7 +344,7 @@ export default function Home() {
               })}
             </div>
           </div>
-
+          {/* Chat Header */}
           <div className="bg-white p-4 border-b flex items-center justify-between sticky top-0 z-20">
             <div className="flex flex-col sm:flex-row sm:items-center gap-2">
               <span className="font-semibold">
@@ -380,7 +372,7 @@ export default function Home() {
               Logout
             </button>
           </div>
-
+          {/* Messages */}
           <div className="flex-1 overflow-y-auto p-4">
             <div className="space-y-3">
               {messages.map((m, idx) => {
@@ -390,14 +382,6 @@ export default function Home() {
                   (m.user &&
                     desiredName &&
                     m.user.toLowerCase() === desiredName.toLowerCase());
-                const amSender = isSelf;
-
-                let showTicks = '';
-                if (amSender) {
-                  if (m.pending) showTicks = '⏳'; // queued locally
-                  else if (!m.readBy || m.readBy.length === 0) showTicks = '✓';
-                  else if (m.readBy.length > 0) showTicks = '✓✓';
-                }
 
                 return (
                   <div
@@ -419,13 +403,10 @@ export default function Home() {
                         </div>
                       )}
                       <div className="whitespace-pre-wrap">{m.text}</div>
-                      <div className="mt-1 text-[11px] opacity-70 flex items-center gap-2">
-                        <span>{formatTime(m.timestamp)}</span>
-                        {showTicks && (
-                          <span className="text-xs">{showTicks}</span>
-                        )}
+                      <div className="mt-1 text-[11px] opacity-70">
+                        {formatTime(m.timestamp)}
                         {m.private && (
-                          <span className="text-xs">
+                          <span className="ml-1 text-xs">
                             ({isSelf ? 'to private' : 'private'})
                           </span>
                         )}
@@ -437,29 +418,46 @@ export default function Home() {
               <div ref={messagesEndRef} />
             </div>
           </div>
-
+          {/* Input area */}
           <div className="sticky bottom-0 left-0 right-0 bg-white border-t p-4">
-            <div className="flex gap-2">
-              <input
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleSend();
-                }}
-                className="flex-1 border rounded px-3 py-2 text-black placeholder-gray-400"
-                placeholder={
-                  privateTarget
-                    ? `Message @${privateTarget} (private)`
-                    : 'Type a public message...'
-                }
-              />
+            <div className="flex flex-col gap-2 relative">
+              {showEmojiPicker && (
+                <div className="mb-2 z-50 absolute bottom-full left-0">
+                  <Picker onEmojiClick={handleEmojiClick} />
+                </div>
+              )}
 
-              <button
-                onClick={handleSend}
-                className="bg-green-600 text-white px-4 py-2 rounded"
-              >
-                Send
-              </button>
+              <div className="flex gap-2 items-center">
+                <button
+                  type="button"
+                  onClick={() => setShowEmojiPicker((prev) => !prev)}
+                  className="text-xl"
+                >
+                  😊
+                </button>
+
+                <input
+                  ref={inputRef}
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSend();
+                  }}
+                  className="flex-1 border rounded px-3 py-2 text-black placeholder-gray-400"
+                  placeholder={
+                    privateTarget
+                      ? `Message @${privateTarget} (private)`
+                      : 'Type a public message...'
+                  }
+                />
+
+                <button
+                  onClick={handleSend}
+                  className="bg-green-600 text-white px-4 py-2 rounded"
+                >
+                  Send
+                </button>
+              </div>
             </div>
           </div>
         </div>

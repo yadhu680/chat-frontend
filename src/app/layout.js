@@ -12,8 +12,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: 'Yadhus Chat App',
-  description: 'Whatsapp clone using Next.js and OpenAI',
+  title: 'Chat App by Yadhu',
+  description: 'Whatsapp clone using Next.js, Node.js and OpenAI',
 };
 
 export default function RootLayout({ children }) {
