@@ -93,7 +93,14 @@ export default function Home() {
     };
 
     ws.onclose = () => {
-      console.log('Socket closed');
+      console.log('WebSocket closed. Retrying in 3s...');
+      setTimeout(() => {
+        const saved = sessionStorage.getItem('chatUser');
+        if (saved) {
+          const { username } = JSON.parse(saved);
+          initSocket(username); // retry with saved username
+        }
+      }, 3000);
     };
 
     return ws;
