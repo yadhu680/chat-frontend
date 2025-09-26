@@ -7,6 +7,7 @@ export default function Home() {
   const [desiredName, setDesiredName] = useState('');
   const [myId, setMyId] = useState(null);
   const [registered, setRegistered] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const [users, setUsers] = useState([]); // {id, username, online}
   const [messages, setMessages] = useState([]); // message objects from server
@@ -26,6 +27,7 @@ export default function Home() {
       setDesiredName(username);
       initSocket(username);
     }
+    setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -187,6 +189,14 @@ export default function Home() {
   };
 
   if (!mounted) return null;
+
+  if (loading) {
+    return (
+      <main className="h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-gray-600">Restoring session...</div>
+      </main>
+    );
+  }
 
   if (!registered) {
     return (
