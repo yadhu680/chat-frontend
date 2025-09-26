@@ -6,7 +6,6 @@ export default function Home() {
   const [mounted, setMounted] = useState(false);
   const [desiredName, setDesiredName] = useState('');
   const [myId, setMyId] = useState(null);
-  const [myName, setMyName] = useState('');
   const [registered, setRegistered] = useState(false);
 
   const [users, setUsers] = useState([]); // {id, username, online}
@@ -14,63 +13,31 @@ export default function Home() {
   const [input, setInput] = useState('');
   const [error, setError] = useState('');
   const [privateTarget, setPrivateTarget] = useState('');
+  const [isJoining, setIsJoining] = useState(false);
   const wsRef = useRef(null);
   const messagesEndRef = useRef(null);
-  const [isJoining, setIsJoining] = useState(false);
 
   useEffect(() => {
     setError('');
     setMounted(true);
+    const saved = sessionStorage.getItem('chatUser');
+    if (saved) {
+      const { username } = JSON.parse(saved);
+      setDesiredName(username);
+      initSocket(username);
+    }
   }, []);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  function showErrorMsg(msg) {
-    setError(msg);
-  }
-
-  // helper: build dynamic ws url
-  function buildWsUrl() {
-    const hostname = window.location.hostname;
-    const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-    const isLocal = ['localhost', '127.0.0.1'].includes(hostname);
-    if (isLocal) {
-      return `${protocol}://${hostname}:8080`;
-    }
-    return 'wss://whatsapp-clone-backend-lajh.onrender.com';
-  }
-
-  const register = () => {
-    if (isJoining) return; // prevent double clicks
-
-    if (!desiredName.trim()) {
-      showErrorMsg('Enter your name first!');
-      return;
-    } else {
-      setError('');
-    }
+  function initSocket(username) {
     const ws = new WebSocket(buildWsUrl());
     wsRef.current = ws;
 
-    const usernamePattern = /^[a-zA-Z0-9._]{3,20}$/;
-
-    if (!usernamePattern.test(desiredName)) {
-      showErrorMsg(
-        'Invalid name! Only letters, numbers, underscore, or dot (3–20 chars) allowed.'
-      );
-      return;
-    } else {
-      setError('');
-    }
-
-    setIsJoining(true); // lock the button
-
     ws.onopen = () => {
-      ws.send(
-        JSON.stringify({ type: 'register', username: desiredName.trim() })
-      );
+      ws.send(JSON.stringify({ type: 'register', username }));
     };
 
     ws.onmessage = (evt) => {
@@ -78,13 +45,14 @@ export default function Home() {
 
       if (data.type === 'error') {
         showErrorMsg(data.message || 'Error from server');
-        return;
       } else if (data.type === 'registered') {
         setMyId(data.id);
-        setMyName(data.username);
         setRegistered(true);
-        sessionStorage.setItem('chat-user-id', data.id);
-        sessionStorage.setItem('chat-username', data.username);
+
+        sessionStorage.setItem(
+          'chatUser',
+          JSON.stringify({ id: data.id, username: data.username })
+        );
       } else if (data.type === 'history') {
         setMessages(data.messages || []);
       } else if (data.type === 'users') {
@@ -119,29 +87,55 @@ export default function Home() {
       }
     };
 
-    ws.onclose = () => {};
-    // allow re-enable if needed (like error)
-    setTimeout(() => setIsJoining(false), 2000);
-  };
+    ws.onclose = () => {
+      console.log('Socket closed');
+    };
 
-  useEffect(() => {
-    const savedName = sessionStorage.getItem('chat-username');
-    const savedId = sessionStorage.getItem('chat-user-id');
-    if (savedName && savedId) {
-      setDesiredName(savedName);
-      register();
+    return ws;
+  }
+
+  function showErrorMsg(msg) {
+    setError(msg);
+  }
+
+  function buildWsUrl() {
+    const hostname = window.location.hostname;
+    const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+    const isLocal = ['localhost', '127.0.0.1'].includes(hostname);
+    if (isLocal) {
+      return `${protocol}://${hostname}:8080`;
     }
-  }, []);
+    return 'wss://whatsapp-clone-backend-lajh.onrender.com';
+  }
+
+  const register = () => {
+    if (isJoining) return;
+    const trimmedName = desiredName.trim();
+    if (!trimmedName) {
+      showErrorMsg('Enter your name first!');
+      return;
+    }
+
+    const usernamePattern = /^[a-zA-Z0-9._]{3,20}$/;
+    if (!usernamePattern.test(trimmedName)) {
+      showErrorMsg(
+        'Invalid name! Only letters, numbers, underscore, or dot (3–20 chars) allowed.'
+      );
+      return;
+    }
+
+    setIsJoining(true);
+    initSocket(trimmedName);
+    setTimeout(() => setIsJoining(false), 3000);
+  };
 
   const handleUserClick = (user) => {
     if (privateTarget === user.username) {
       setPrivateTarget(null);
-      // Remove @username from input if it exists
       setInput((prev) => prev.replace(new RegExp(`@${user.username}\\s*`), ''));
       return;
     }
 
-    // Remove previous @username if any
     let newInput = input.replace(/@\w+\s*/, '');
     setPrivateTarget(user.username);
     setInput(`${newInput}`);
@@ -154,6 +148,7 @@ export default function Home() {
       wsRef.current.readyState !== WebSocket.OPEN
     )
       return;
+
     wsRef.current.send(
       JSON.stringify({
         type: 'message',
@@ -172,11 +167,9 @@ export default function Home() {
         wsRef.current.close();
       }
     } catch {}
-    sessionStorage.removeItem('chat-user-id');
-    sessionStorage.removeItem('chat-username');
+    sessionStorage.removeItem('chatUser');
     setRegistered(false);
     setMyId(null);
-    setMyName('');
     setMessages([]);
     setUsers([]);
     setInput('');
@@ -228,7 +221,9 @@ export default function Home() {
               {isJoining ? 'Joining...' : 'Click here to join'}
             </button>
           </div>
-          {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
+          {error.length > 0 && (
+            <p className="text-red-500 text-sm mt-2">{error}</p>
+          )}
           <p className="text-sm text-gray-500 mt-3">
             Already joined? enter the same name to rejoin.
           </p>
@@ -237,16 +232,14 @@ export default function Home() {
     );
   }
 
-  // Sort users: online first
   const sortedUsers = [...users].sort((a, b) => {
     if (a.online === b.online) return 0;
-    return a.online ? -1 : 1; // online first
+    return a.online ? -1 : 1;
   });
 
   return (
     <div className="flex h-screen bg-gray-100">
       {/* Sidebar */}
-
       <aside className="w-80 bg-white border-r p-4 hidden sm:block sticky top-0 h-screen overflow-y-auto">
         <div className="flex items-center justify-between mb-4 border-b pb-2">
           <span className="font-semibold text-black">Friends Online</span>
@@ -263,7 +256,7 @@ export default function Home() {
             Click the user to chat privately
           </span>
           {sortedUsers.map((u) => {
-            const isMe = u.username === myName;
+            const isMe = u.username === desiredName;
             return (
               <div
                 key={u.id}
@@ -294,7 +287,7 @@ export default function Home() {
           </span>
           <div className="flex flex-wrap gap-2 mt-2">
             {sortedUsers.map((u) => {
-              const isMe = u.username === myName;
+              const isMe = u.username === desiredName;
               return (
                 <button
                   key={u.id}
@@ -323,11 +316,11 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="bg-white p-4 border-b flex items-center justify-between">
+        <div className="bg-white p-4 border-b flex items-center justify-between sticky top-0 z-20">
           <div className="flex flex-col sm:flex-row sm:items-center gap-2">
             <span className="font-semibold">
               <span className="font-semibold text-black">Chat as </span>
-              <span className="text-green-600">{myName || 'You'}</span>
+              <span className="text-green-600">{desiredName || 'You'}</span>
             </span>
             {privateTarget && (
               <div className="mb-1 flex items-center justify-between bg-green-500 text-white px-3 py-1 rounded-full text-sm">
@@ -358,14 +351,14 @@ export default function Home() {
                 m.self === true ||
                 m.user === 'You' ||
                 (m.user &&
-                  myName &&
-                  m.user.toLowerCase() === myName.toLowerCase());
+                  desiredName &&
+                  m.user.toLowerCase() === desiredName.toLowerCase());
               const amSender = isSelf;
 
               let showTicks = '';
               if (amSender) {
-                if (!m.readBy || m.readBy.length === 0) showTicks = '✓'; // sent
-                else if (m.readBy.length > 0) showTicks = '✓✓'; // read by recipient
+                if (!m.readBy || m.readBy.length === 0) showTicks = '✓';
+                else if (m.readBy.length > 0) showTicks = '✓✓';
               }
 
               return (
@@ -415,7 +408,7 @@ export default function Home() {
               placeholder={
                 privateTarget
                   ? `Message @${privateTarget} (private)`
-                  : 'Type a message...'
+                  : 'Type a public message...'
               }
             />
 
