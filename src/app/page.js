@@ -25,6 +25,7 @@ export default function Home() {
     if (saved) {
       const { username } = JSON.parse(saved);
       setDesiredName(username);
+      setRegistered(true);
       initSocket(username);
     }
     setLoading(false);
@@ -47,6 +48,8 @@ export default function Home() {
 
       if (data.type === 'error') {
         showErrorMsg(data.message || 'Error from server');
+        sessionStorage.removeItem('chatUser');
+        setRegistered(false);
       } else if (data.type === 'registered') {
         setMyId(data.id);
         setRegistered(true);
